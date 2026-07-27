@@ -1,0 +1,60 @@
+{
+  "name": "kafka-offset-harbor",
+  "productName": "Kafka Offset Harbor",
+  "version": "1.0.0",
+  "author": {
+    "name": "Rajesh Kumaravel",
+    "email": "16378062+rajeshkumaravel@users.noreply.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rajeshkumaravel/kafka-offset-harbor.git"
+  },
+  "description": "A desktop app to browse Apache Kafka topics, messages and consumer-group offsets.",
+  "main": "./out/main/index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "desktopName": "kafka-offset-harbor.desktop",
+  "scripts": {
+    "predev": "node scripts/patch-dev-app-name.mjs",
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "build": "electron-vite build",
+    "build:mac": "electron-vite build && electron-builder --mac --publish never",
+    "build:win": "electron-vite build && electron-builder --win --publish never",
+    "build:linux": "electron-vite build && electron-builder --linux --publish never",
+    "build:dir": "electron-vite build && electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps && node scripts/patch-dev-app-name.mjs"
+  },
+  "dependencies": {
+    "aws-msk-iam-sasl-signer-js": "^1.0.2",
+    "better-sqlite3": "^12.11.1",
+    "electron-updater": "^6.8.9",
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.13.9",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "monaco-editor": "^0.52.2",
+    "playwright-core": "^1.61.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "zustand": "^5.0.14"
+  }
+}

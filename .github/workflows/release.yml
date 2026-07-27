@@ -1,0 +1,173 @@
+name: Release
+
+# Builds macOS (.dmg) and Windows (.exe) production installers in parallel,
+# uploads each as a workflow Artifact, then creates a GitHub Release at a tag
+# with the installers attached for download.
+#
+# Run it either way:
+#   • Actions tab → "Release" → Run workflow  (creates a tag from package.json)
+#   • or push a tag:  git tag v0.1.0 && git push origin v0.1.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (default: v<version> from package.json)'
+        required: false
+        type: string
+      prerelease:
+        description: 'Mark the release as a pre-release'
+        required: false
+        default: false
+        type: boolean
+  push:
+    tags:
+      - 'v*'
+
+# One release run at a time per ref; cancel superseded runs.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # required to create the tag and release
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # let one OS finish even if the other fails
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS
+            script: build:mac
+            artifact_name: installer-macos
+            artifact_glob: |
+              dist/*.dmg
+              dist/*.dmg.blockmap
+              dist/latest*.yml
+          - os: windows-latest
+            name: Windows
+            script: build:win
+            artifact_name: installer-windows
+            artifact_glob: |
+              dist/*.exe
+              dist/*.exe.blockmap
+              dist/*.zip
+              dist/latest*.yml
+          - os: ubuntu-latest
+            name: Linux
+            script: build:linux
+            artifact_name: installer-linux
+            artifact_glob: |
+              dist/*.AppImage
+              dist/*.deb
+              dist/latest*.yml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installer
+        run: npm run ${{ matrix.script }}
+        env:
+          # Open-source builds are unsigned — don't let electron-builder hunt
+          # for a signing identity (it would hang or fail on CI).
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_glob }}
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download all installers
+        uses: actions/download-artifact@v8
+        with:
+          pattern: installer-*
+          path: artifacts
+
+      - name: Resolve release tag
+        id: meta
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          elif [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="v${VERSION}"
+          fi
+          DATE_STR="$(node -e "
+            const now = new Date();
+            const day = now.getUTCDate();
+            const s = ['th','st','nd','rd'];
+            const v = day % 100;
+            const ord = s[(v - 20) % 10] || s[v] || s[0];
+            const month = now.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
+            console.log(\`\${month} \${day}\${ord}, \${now.getUTCFullYear()}\`);
+          ")"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "date=${DATE_STR}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${TAG} (${DATE_STR})"
+
+      - name: List downloaded files
+        shell: bash
+        run: find artifacts -type f -print
+
+      - name: Create release and attach installers
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.tag }} (${{ steps.meta.outputs.date }})
+          draft: false
+          prerelease: ${{ inputs.prerelease || false }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.zip
+            artifacts/**/*.blockmap
+            artifacts/**/*.yml
+          body: |
+            Desktop installers for **Kafka Offset Harbor**.
+
+            | Platform | Download |
+            |----------|----------|
+            | macOS (Apple silicon / Intel) | `*.dmg` |
+            | Windows (x64) | `*.exe` (NSIS installer) |
+            | Linux | `*.AppImage` (x64 / arm64) or `*.deb` (x64) |
+
+            > These builds are **unsigned**. macOS may need right-click → Open the
+            > first time (Gatekeeper), and Windows may show a SmartScreen prompt.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

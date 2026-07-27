@@ -1,0 +1,79 @@
+# Reverse-DNS of the GitHub home: github.com/rajeshkumaravel/kafka-offset-harbor.
+appId: io.github.rajeshkumaravel.kafkaoffsetharbor
+productName: Kafka Offset Harbor
+directories:
+  buildResources: resources
+  output: dist
+files:
+  - out/**
+  - package.json
+  # better-sqlite3 pulls an install-time toolchain (prebuild-install and its
+  # HTTP/tar deps) that fetches prebuilt binaries during `npm install`. None of
+  # it is used at runtime — the native .node is already compiled — so keep this
+  # network-capable code out of the shipped app.
+  - '!node_modules/prebuild-install/**'
+  - '!node_modules/simple-get/**'
+  - '!node_modules/decompress-response/**'
+  - '!node_modules/simple-concat/**'
+  - '!node_modules/tunnel-agent/**'
+  - '!node_modules/tar-fs/**'
+  - '!node_modules/tar-stream/**'
+  - '!node_modules/node-abi/**'
+  - '!node_modules/github-from-package/**'
+  - '!node_modules/expand-template/**'
+  - '!node_modules/napi-build-utils/**'
+  - '!node_modules/mkdirp-classic/**'
+  - '!node_modules/detect-libc/**'
+  - '!node_modules/rc/**'
+asarUnpack:
+  # native modules must live outside the asar archive
+  - node_modules/better-sqlite3/**
+npmRebuild: true
+
+publish:
+  provider: github
+  releaseType: release
+  owner: rajeshkumaravel
+  repo: kafka-offset-harbor
+
+mac:
+  category: public.app-category.developer-tools
+  icon: resources/icon.icns
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  # UNSIGNED BY DESIGN. No Developer ID, no notarization.
+  identity: null
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.dmg
+
+win:
+  icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+
+nsis:
+  artifactName: Kafka-Offset-Harbor-Setup-${version}.exe
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+linux:
+  icon: resources/icon.png
+  category: Development
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64]
+  maintainer: Rajesh Kumaravel <16378062+rajeshkumaravel@users.noreply.github.com>
