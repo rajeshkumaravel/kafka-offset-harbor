@@ -1,7 +1,7 @@
 {
   "name": "kafka-offset-harbor",
   "productName": "Kafka Offset Harbor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Rajesh Kumaravel",
     "email": "16378062+rajeshkumaravel@users.noreply.github.com"

@@ -60,9 +60,17 @@ Grab the latest installer from the [**Releases**](../../releases) page:
 | Windows (x64) | `.exe` (NSIS installer) |
 | Linux | `.AppImage` (x64 / arm64) or `.deb` (x64) |
 
-Builds are **unsigned** — on macOS use right-click → *Open* the first time
-(Gatekeeper); on Windows dismiss the SmartScreen prompt. No broker needed to try
-it: the app ships with a **built-in demo cluster**.
+Builds are **unsigned** — on macOS, if Gatekeeper flags the app as "damaged" or "broken", clear the quarantine flag and apply an ad-hoc signature:
+
+```bash
+# 1. Remove Gatekeeper quarantine attribute
+sudo xattr -rd com.apple.quarantine "/Applications/Kafka Offset Harbor.app"
+
+# 2. Apply ad-hoc code signature (required for Apple Silicon M1/M2/M3/M4)
+codesign --force --deep --sign - "/Applications/Kafka Offset Harbor.app"
+```
+
+On Windows dismiss the SmartScreen prompt. No broker needed to try it: the app ships with a **built-in demo cluster**.
 
 Works with any broker that speaks the Kafka protocol supported by
 [kafkajs](https://kafka.js.org) (Apache Kafka 0.10+), including

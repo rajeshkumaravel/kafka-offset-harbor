@@ -1,5 +1,6 @@
 import { useStore } from '../state/store'
 import type { UpdateStatus } from '@shared/types'
+import pkg from '../../../../package.json'
 
 interface Props {
   updateStatus: UpdateStatus | null
@@ -36,6 +37,20 @@ export default function TopBar({ updateStatus }: Props): React.JSX.Element {
   return (
     <div className="topbar">
       <span className="brand">Kafka Offset Harbor</span>
+      <span
+        style={{
+          fontSize: '11px',
+          padding: '2px 8px',
+          borderRadius: '10px',
+          background: 'rgba(59, 130, 246, 0.15)',
+          color: '#60a5fa',
+          border: '1px solid rgba(96, 165, 250, 0.3)',
+          fontWeight: 500,
+          marginRight: '6px'
+        }}
+      >
+        v{pkg.version} • release check
+      </span>
       {updateLabel && (
         <span
           className={`update-chip${updateStatus?.state === 'ready' ? ' ready' : ''}${updateStatus?.state === 'error' ? ' error' : ''}`}
